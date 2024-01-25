@@ -3,10 +3,11 @@ ALTER TABLE collab ADD nom VARCHAR(50);
 UPDATE employe SET salaire = 4500 WHERE id_employe = 2;
 DELETE FROM projet WHERE id_projet = 1;
 DROP TABLE a_suppr;
-SELECT * FROM projet WHERE cout > 30000 LIMIT 2;
+SELECT * FROM projet WHERE cout < 1000000 LIMIT 2;
 SELECT SUM(cout) AS cout FROM projet GROUP BY id_client;
 SELECT * FROM projet ORDER BY nbr_employe;
-SELECT * FROM projet INNER JOIN clients WHERE id_projet = 2;
+
+
 SELECT DISTINCT (cout*quantite) AS montant_total FROM materiel HAVING montant_total > 15000;
 EXPLAIN SELECT * FROM projet;
 CREATE TABLE projet2(
@@ -24,33 +25,53 @@ SELECT * FROM projet
 UNION
 SELECT * FROM projet2;
 SELECT * FROM projet where cout LIKE "%1";
-SELECT id_materiel,cout,type_materiel,quantite,
+SELECT id_projet,cout,type_projet,
     CASE 
-      WHEN cout=1000 THEN 'Prix ordinaire'
-      WHEN cout>1000 THEN 'Prix supérieur à la normale'
-      ELSE 'Prix inférieur à la normale'
+      WHEN cout<100000 THEN 'Petit projet'
+      WHEN cout>=100000 AND cout<250000 THEN 'Projet moyen'
+      ELSE 'Gros projet'
     END
-FROM materiel;
+FROM projet;
 TRUNCATE TABLE projet2;
 SELECT * FROM materiel WHERE quantite BETWEEN 1 AND 20;
 SELECT * FROM employe WHERE salaire IN (1800, 3000, 1500);
 DELIMITER //
 
-CREATE PROCEDURE AjouterEmployeAProjet(IN p_id_projet INT, IN p_id_employe INT)
+CREATE PROCEDURE AjouteEmployeProjet(IN p_id_projet INT, IN p_id_employe INT)
 BEGIN
+    -- Ajouter l'entrée dans la table employe_projet
     INSERT INTO employe_projet (id_projet, id_employe)
     VALUES (p_id_projet, p_id_employe);
+    
+    -- Mettre à jour le nombre d'employés dans la table projet
+    UPDATE projet
+    SET nbr_employe = nbr_employe + 1
+    WHERE id_projet = p_id_projet;
 END //
 
 DELIMITER ;
-CREATE VIEW VueDisponibiliteMateriel AS
-SELECT
-    mp.id_projet,
-    m.type_materiel,
-    m.quantite - COALESCE(SUM(mp.quantite), 0) AS quantite_disponible
-FROM
-    materiel m
-    LEFT JOIN materiel_projet mp ON m.id_materiel = mp.id_materiel
-GROUP BY
-    mp.id_projet, m.id_materiel;
 
+DELIMITER //
+
+CREATE VIEW vue_cout_metier AS
+SELECT collab.metier, SUM(collab_projet.cout) AS cout_total
+FROM collab
+JOIN collab_projet ON collab.id_collab = collab_projet.id_collab
+GROUP BY collab.metier;
+DELIMITER ;
+
+SELECT *
+FROM vueCoutParMetier
+WHERE id_projet = 2;
+
+SELECT e.*
+FROM employe e
+JOIN employe_projet ep ON e.id_employe = ep.id_employe
+WHERE ep.id_projet = 2;
+SELECT * FROM vue_cout_metier;
+SELECT salaire FROM employe;
+
+CREATE VIEW vue_salaire AS
+SELECT salaire
+FROM employe;
+SELECT * FROM vue_salaire;
